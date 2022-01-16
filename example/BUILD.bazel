@@ -5,7 +5,10 @@ go_library(
     srcs = ["main.go"],
     importpath = "github.com/pedroegsilva/gofindrules/example",
     visibility = ["//visibility:private"],
-    deps = ["//dsl"],
+    deps = [
+        "//dsl",
+        "//finder",
+    ],
 )
 
 go_binary(

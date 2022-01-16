@@ -36,23 +36,18 @@ func (exprType ExprType) GetName() string {
 
 // Expression can be a literal (UNIT) or a function composed by
 // one or two other expressions (NOT, AND, OR).
-type Literal struct {
-	Tag    string
-	Fields []FieldInfo
-}
-
-type FieldInfo struct {
-	Type string
-	Path string
+type TagInfo struct {
+	Name      string
+	FieldPath string
 }
 
 // Expression can be a literal (UNIT) or a function composed by
 // one or two other expressions (NOT, AND, OR).
 type Expression struct {
-	LExpr   *Expression
-	RExpr   *Expression
-	Type    ExprType
-	Literal Literal
+	LExpr *Expression
+	RExpr *Expression
+	Type  ExprType
+	Tag   TagInfo
 
 	// used on solveOrder solver
 	val bool
@@ -76,30 +71,26 @@ func (exp *Expression) GetTypeName() string {
 // If the incomplete map is used, missing keys will be considered as a no match on the
 // document.
 func (exp *Expression) Solve(
-	fieldTypeByFieldPathByTag map[string]map[string]string,
+	fieldPathByTag map[string][]string,
 ) (bool, error) {
-	eval, err := exp.solve(fieldTypeByFieldPathByTag)
+	eval, err := exp.solve(fieldPathByTag)
 	return eval, err
 }
 
 //solve implements Solve
 func (exp *Expression) solve(
-	fieldTypeByFieldPathByTag map[string]map[string]string,
+	fieldPathByTag map[string][]string,
 ) (bool, error) {
 	switch exp.Type {
 	case UNIT_EXPR:
-		if typeByFieldPath, ok := fieldTypeByFieldPathByTag[exp.Literal.Tag]; ok {
-			if len(exp.Literal.Fields) == 0 {
+		if fieldPaths, ok := fieldPathByTag[exp.Tag.Name]; ok {
+			if exp.Tag.FieldPath == "" {
 				return true, nil
 			}
 
-			for _, expField := range exp.Literal.Fields {
-				if fieldType, ok := typeByFieldPath[expField.Path]; ok {
-					if expField.Type == "" {
-						return true, nil
-					}
-
-					return fieldType == expField.Type, nil
+			for _, fieldPath := range fieldPaths {
+				if fieldPath == exp.Tag.FieldPath {
+					return true, nil
 				}
 			}
 		}
@@ -110,11 +101,11 @@ func (exp *Expression) solve(
 		if exp.LExpr == nil || exp.RExpr == nil {
 			return false, fmt.Errorf("AND statment do not have rigth or left expression: %v", exp)
 		}
-		lval, err := exp.LExpr.solve(fieldTypeByFieldPathByTag)
+		lval, err := exp.LExpr.solve(fieldPathByTag)
 		if err != nil {
 			return false, err
 		}
-		rval, err := exp.RExpr.solve(fieldTypeByFieldPathByTag)
+		rval, err := exp.RExpr.solve(fieldPathByTag)
 		if err != nil {
 			return false, err
 		}
@@ -124,11 +115,11 @@ func (exp *Expression) solve(
 		if exp.LExpr == nil || exp.RExpr == nil {
 			return false, fmt.Errorf("OR statment do not have rigth or left expression: %v", exp)
 		}
-		lval, err := exp.LExpr.solve(fieldTypeByFieldPathByTag)
+		lval, err := exp.LExpr.solve(fieldPathByTag)
 		if err != nil {
 			return false, err
 		}
-		rval, err := exp.RExpr.solve(fieldTypeByFieldPathByTag)
+		rval, err := exp.RExpr.solve(fieldPathByTag)
 		if err != nil {
 			return false, err
 		}
@@ -138,7 +129,7 @@ func (exp *Expression) solve(
 		if exp.RExpr == nil {
 			return false, fmt.Errorf("NOT statement do not have expression: %v", exp)
 		}
-		rval, err := exp.RExpr.solve(fieldTypeByFieldPathByTag)
+		rval, err := exp.RExpr.solve(fieldPathByTag)
 		if err != nil {
 			return false, err
 		}
@@ -163,7 +154,11 @@ func (exp *Expression) prettyFormat(lvl int) (pprint string) {
 	tabs := "    "
 	onLVL := strings.Repeat(tabs, lvl)
 	if exp.Type == UNIT_EXPR {
-		return fmt.Sprintf("%s%s\n", onLVL, exp.Literal)
+		fieldPath := ""
+		if exp.Tag.FieldPath != "" {
+			fieldPath = fmt.Sprintf("[%s]", exp.Tag.FieldPath)
+		}
+		return fmt.Sprintf("%s%s%s\n", onLVL, exp.Tag.Name, fieldPath)
 	}
 	pprint = fmt.Sprintf("%s%s\n", onLVL, exp.GetTypeName())
 	if exp.LExpr != nil {
@@ -185,7 +180,8 @@ type SolverOrder []*Expression
 // all the terms needed to solve de expression or it will return an error.
 // If the incomplete map is used, missing keys will be considered as a no match on the
 // document.
-func (so SolverOrder) Solve(fieldTypeByFieldPathByTag map[string]map[string]string) (bool, error) {
+func (so SolverOrder) Solve(fieldPathByTag map[string][]string) (bool, error) {
+	values := make(map[*Expression]bool)
 	for i := len(so) - 1; i >= 0; i-- {
 		exp := so[i]
 		if exp == nil {
@@ -194,43 +190,70 @@ func (so SolverOrder) Solve(fieldTypeByFieldPathByTag map[string]map[string]stri
 	Switch:
 		switch exp.Type {
 		case UNIT_EXPR:
-			exp.val = false
-			if typeByFieldPath, ok := fieldTypeByFieldPathByTag[exp.Literal.Tag]; ok {
-				if len(exp.Literal.Fields) == 0 {
-					exp.val = true
+			values[exp] = false
+			// exp.val = false
+			if fieldPaths, ok := fieldPathByTag[exp.Tag.Name]; ok {
+				if exp.Tag.FieldPath == "" {
+					// exp.val = true
+					values[exp] = true
 					break Switch
 				}
 
-				for _, expField := range exp.Literal.Fields {
-					if fieldType, ok := typeByFieldPath[expField.Path]; ok {
-						if expField.Type == "" {
-							exp.val = true
-							break Switch
-						}
-
-						exp.val = fieldType == expField.Type
+				for _, fieldPath := range fieldPaths {
+					if fieldPath == exp.Tag.FieldPath {
+						values[exp] = true
+						// exp.val = true
 						break Switch
 					}
 				}
 			}
 		case AND_EXPR:
-			if exp.LExpr == nil || exp.RExpr == nil {
-				return false, fmt.Errorf("AND statement do not have right or left expression: %v", exp)
+			lval, ok := values[exp.LExpr]
+			if !ok {
+				return false, fmt.Errorf("AND statement do not have left expression: %v", exp)
 			}
-			exp.val = exp.LExpr.val && exp.RExpr.val
+
+			rval, ok := values[exp.RExpr]
+			if !ok {
+				return false, fmt.Errorf("AND statement do not have right expression: %v", exp)
+			}
+			// if exp.LExpr == nil || exp.RExpr == nil {
+			// 	return false, fmt.Errorf("AND statement do not have right or left expression: %v", exp)
+			// }
+			values[exp] = lval && rval
+			// exp.val = exp.LExpr.val && exp.RExpr.val
 
 		case OR_EXPR:
-			if exp.LExpr == nil || exp.RExpr == nil {
-				return false, fmt.Errorf("OR statement do not have right or left expression: %v", exp)
+			lval, ok := values[exp.LExpr]
+			if !ok {
+				return false, fmt.Errorf("OR statement do not have left expression: %v", exp)
 			}
-			exp.val = exp.LExpr.val || exp.RExpr.val
+
+			rval, ok := values[exp.RExpr]
+			if !ok {
+				return false, fmt.Errorf("OR statement do not have right expression: %v", exp)
+			}
+
+			// if exp.LExpr == nil || exp.RExpr == nil {
+			// 	return false, fmt.Errorf("OR statement do not have right or left expression: %v", exp)
+			// }
+
+			values[exp] = lval || rval
+			// exp.val = exp.LExpr.val || exp.RExpr.val
 
 		case NOT_EXPR:
-			if exp.RExpr == nil {
+			rval, ok := values[exp.RExpr]
+			if !ok {
 				return false, fmt.Errorf("NOT statement do not have expression: %v", exp)
 			}
 
-			exp.val = !exp.RExpr.val
+			// if exp.RExpr == nil {
+			// 	return false, fmt.Errorf("NOT statement do not have expression: %v", exp)
+			// }
+
+			values[exp] = !rval
+
+			// exp.val = !exp.RExpr.val
 
 		default:
 			return false, fmt.Errorf("unable to process expression type %d", exp.Type)

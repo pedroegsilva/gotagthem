@@ -54,16 +54,16 @@ func (p *Parser) parse() (*Expression, error) {
 				exp.RExpr = newExp
 			}
 
-		case TAG, FIELD_PATH:
+		case TAG:
 			p.unscan()
-			literal, err := p.parseLiteralInfo()
+			tag, err := p.parseTagInfo()
 			if err != nil {
 				return exp, err
 			}
 
 			keyExp := &Expression{
-				Type:    UNIT_EXPR,
-				Literal: literal,
+				Type: UNIT_EXPR,
+				Tag:  tag,
 			}
 			if exp.LExpr == nil {
 				exp.LExpr = keyExp
@@ -94,15 +94,15 @@ func (p *Parser) parse() (*Expression, error) {
 			}
 
 			switch nextTok {
-			case TAG, FIELD_PATH:
+			case TAG:
 				p.unscan()
-				literal, err := p.parseLiteralInfo()
+				tag, err := p.parseTagInfo()
 				if err != nil {
 					return exp, err
 				}
 				notExp.RExpr = &Expression{
-					Type:    UNIT_EXPR,
-					Literal: literal,
+					Type: UNIT_EXPR,
+					Tag:  tag,
 				}
 
 			case OPPAR:
@@ -239,42 +239,33 @@ func (p *Parser) handleOpenPar() (*Expression, error) {
 }
 
 // handleOpenPar gets the expression that is inside the parentheses
-func (p *Parser) parseLiteralInfo() (Literal, error) {
-	literal := Literal{}
-Loop:
-	for {
-		tok, lit, err := p.scanIgnoreWhitespace()
-		if err != nil {
-			return literal, err
-		}
-
-		switch tok {
-		case TAG:
-			if literal.Tag != "" {
-				return literal, fmt.Errorf("unexpected tag was found. The tag %s is conflicting with %s", lit, literal.Tag)
-			}
-			literal.Tag = lit
-
-		case FIELD_PATH:
-			literal.Fields = append(literal.Fields, FieldInfo{Path: lit})
-
-		case FIELD_TYPE:
-			fieldsLen := len(literal.Fields)
-			if fieldsLen == 0 {
-				return literal, fmt.Errorf("unexpected field type was found. The field type %s does not hava a field to be associated", lit)
-			}
-
-			lastField := &literal.Fields[fieldsLen-1]
-			if lastField.Type != "" {
-				return literal, fmt.Errorf("unexpected field type was found. The field type '%s' is conflicting with '%s'", lit, lastField.Type)
-			}
-			lastField.Type = lit
-
-		default:
-			p.unscan()
-			break Loop
-		}
+func (p *Parser) parseTagInfo() (TagInfo, error) {
+	tagInfo := TagInfo{}
+	tok, lit, err := p.scanIgnoreWhitespace()
+	if err != nil {
+		return tagInfo, err
 	}
 
-	return literal, nil
+	if tok != TAG {
+		return tagInfo, fmt.Errorf("invalid expression: Expecting TAG but found %s", tok.getName())
+	}
+
+	if lit == "" {
+		return tagInfo, fmt.Errorf("invalid expression: Found empty TAG")
+	}
+
+	tagInfo.Name = lit
+
+	nextTok, nextLit, err := p.scanIgnoreWhitespace()
+	if err != nil {
+		return tagInfo, err
+	}
+
+	if nextTok != FIELD_PATH {
+		p.unscan()
+		return tagInfo, nil
+	}
+
+	tagInfo.FieldPath = nextLit
+	return tagInfo, nil
 }

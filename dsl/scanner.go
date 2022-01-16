@@ -20,7 +20,6 @@ const (
 	// Literals
 	TAG        // "keyword"
 	FIELD_PATH // "keyword"
-	FIELD_TYPE // "keyword"
 
 	// Misc characters
 	QUOTATION // "
@@ -46,8 +45,6 @@ func (tok Token) getName() string {
 		return "TAG"
 	case FIELD_PATH:
 		return "FIELD_PATH"
-	case FIELD_TYPE:
-		return "FIELD_TYPE"
 	case QUOTATION:
 		return "QUOTATION"
 	case OPPAR:
@@ -91,12 +88,9 @@ func (s *Scanner) Scan() (tok Token, lit string, err error) {
 	case ch == '"':
 		s.unread()
 		return s.scanTag()
-	case ch == ':', ch == ',':
+	case ch == ':':
 		s.unread()
 		return s.scanFieldPath()
-	case ch == '[':
-		s.unread()
-		return s.scanFieldType()
 	case isLetter(ch):
 		s.unread()
 		return s.scanOperators()
@@ -207,7 +201,7 @@ Loop:
 			_, _ = buf.WriteRune(ch)
 		}
 	}
-	lit = buf.String()
+	lit = strings.Trim(buf.String(), " ")
 	tok = TAG
 	return
 }
@@ -217,8 +211,8 @@ Loop:
 // before a '"' returns an error as well.
 func (s *Scanner) scanFieldPath() (tok Token, lit string, err error) {
 	ch := s.read()
-	if !(ch == ':' || ch == ',') {
-		return ILLEGAL, "", fmt.Errorf("fail to scan keyword: expected \" but found %c", ch)
+	if ch != ':' {
+		return ILLEGAL, "", fmt.Errorf("fail to scan field: expected ':' but found %c", ch)
 	}
 	var buf bytes.Buffer
 Loop:
@@ -226,7 +220,7 @@ Loop:
 		ch := s.read()
 		switch ch {
 		case eof:
-			return ILLEGAL, "", fmt.Errorf("fail to scan tag: expected ':' but found EOF")
+			return ILLEGAL, "", fmt.Errorf("fail to scan field: expected '\"' but found EOF")
 		case '\\':
 			scapedCh := s.read()
 			switch scapedCh {
@@ -236,70 +230,16 @@ Loop:
 				_, _ = buf.WriteRune('\\')
 				_, _ = buf.WriteRune(scapedCh)
 			default:
-				return ILLEGAL, "", fmt.Errorf("fail to scan keyword: invalid escaped char %c", scapedCh)
+				return ILLEGAL, "", fmt.Errorf("fail to scan field: invalid escaped char %c", scapedCh)
 			}
-		case '[', ',':
-			s.unread()
-			fallthrough
 		case '"':
 			break Loop
 		default:
 			_, _ = buf.WriteRune(ch)
 		}
 	}
-	lit = buf.String()
+	lit = strings.Trim(buf.String(), " ")
 	tok = FIELD_PATH
-	return
-}
-
-// scanFieldType scans the keyword and scape needed characters
-// If a invalid scape is used an error will be returned and if EOF is found
-// before a '"' returns an error as well.
-func (s *Scanner) scanFieldType() (tok Token, lit string, err error) {
-	ch := s.read()
-	if ch != '[' {
-		return ILLEGAL, "", fmt.Errorf("fail to scan field type: expected '[' but found %c", ch)
-	}
-	var buf bytes.Buffer
-
-Loop:
-	for {
-		ch := s.read()
-		switch ch {
-		case eof:
-			return ILLEGAL, "", fmt.Errorf("fail to scan field type: expected ']' but found EOF")
-		case '\\':
-			scapedCh := s.read()
-			switch scapedCh {
-			case '\\', '"', '[', ']':
-				_, _ = buf.WriteRune(scapedCh)
-			default:
-				return ILLEGAL, "", fmt.Errorf("fail to scan field type: invalid escaped char %c", scapedCh)
-			}
-		case '"':
-			return ILLEGAL, "", fmt.Errorf("fail to scan field type: expected ']' but found '\"'")
-		case ']':
-			nextCh := s.read()
-			if isWhitespace(nextCh) {
-				s.unread()
-				s.scanWhitespace()
-				nextCh = s.read()
-			}
-
-			if !(nextCh == ',' || nextCh == '"') {
-				return ILLEGAL, "", fmt.Errorf("fail to scan field type: expected ']' to be followed by '\"' or ','")
-			}
-			if nextCh == ',' {
-				s.unread()
-			}
-
-			break Loop
-		default:
-			_, _ = buf.WriteRune(ch)
-		}
-	}
-	lit = buf.String()
-	tok = FIELD_TYPE
 	return
 }
 

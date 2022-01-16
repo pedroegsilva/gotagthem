@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "finder",
     srcs = [
+        "extractorHandlers.go",
         "finder.go",
         "floatextractor.go",
         "intextractors.go",
@@ -10,4 +11,8 @@ go_library(
     ],
     importpath = "github.com/pedroegsilva/gofindrules/finder",
     visibility = ["//visibility:public"],
+    deps = [
+        "//dsl",
+        "@com_github_pedroegsilva_gofindthem//finder",
+    ],
 )
