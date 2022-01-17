@@ -6,7 +6,7 @@ import (
 
 type StringExtractor interface {
 	IsValid(data string) bool
-	ExtractTags(data string) (tags []string, err error)
+	ExtractTags(data string) (tags []string, runData interface{}, err error)
 	GetName() string
 }
 
@@ -38,18 +38,20 @@ func (gfte *GoFindThemExtractor) IsValid(data string) bool {
 	return true
 }
 
-func (gfte *GoFindThemExtractor) ExtractTags(data string) (tags []string, err error) {
+func (gfte *GoFindThemExtractor) ExtractTags(data string) (tags []string, runData interface{}, err error) {
 	expRes, err := gfte.f.ProcessText(data)
 	if err != nil {
 		return
 	}
 
+	expressionsByTag := make(map[string][]string)
 	for _, res := range expRes {
 		if res.Evaluation {
 			tags = append(tags, res.Tag)
+			expressionsByTag[res.Tag] = append(expressionsByTag[res.Tag], res.ExpresionStr)
 		}
 	}
-	return
+	return tags, expressionsByTag, nil
 }
 
 func (gfte *GoFindThemExtractor) GetName() string {
