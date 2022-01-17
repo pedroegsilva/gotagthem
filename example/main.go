@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pedroegsilva/gofindrules/finder"
+	"github.com/pedroegsilva/gotagthem/finder"
 )
 
 func main() {
@@ -35,9 +35,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	u, _ := finder.NewUselessIntExtractor()
 	stringExtractors := []finder.StringExtractor{gfte}
-	finder, err := finder.NewRuleFinderWithRules(stringExtractors, rules)
+	intExtractors := []finder.IntExtractor{u}
+	floatExtractors := []finder.FloatExtractor{}
+
+	finder, err := finder.NewRuleFinderWithRules(stringExtractors, intExtractors, floatExtractors, rules)
 	if err != nil {
 		panic(err)
 	}
@@ -56,11 +59,16 @@ func main() {
 		},
 	}
 
-	res, err := finder.ExtractTagsObject(someObject, nil)
+	fieldInfos, err := finder.ExtractTagsObject(someObject, nil)
 	if err != nil {
 		panic(err)
 	}
-	for _, r := range res {
-		fmt.Println(r)
+	for _, fieldInfo := range fieldInfos {
+		fmt.Println(fieldInfo.Name)
+		for extractorName, info := range fieldInfo.Extractors {
+			fmt.Println("    ", extractorName)
+			fmt.Println("        tags: ", info.Tags)
+			fmt.Println("        statistics: ", info.RunData)
+		}
 	}
 }

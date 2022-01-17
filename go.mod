@@ -1,4 +1,4 @@
-module github.com/pedroegsilva/gofindrules
+module github.com/pedroegsilva/gotagthem
 
 go 1.17
 

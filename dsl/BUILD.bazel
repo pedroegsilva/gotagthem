@@ -7,7 +7,7 @@ go_library(
         "parser.go",
         "scanner.go",
     ],
-    importpath = "github.com/pedroegsilva/gofindrules/dsl",
+    importpath = "github.com/pedroegsilva/gotagthem/dsl",
     visibility = ["//visibility:public"],
 )
 

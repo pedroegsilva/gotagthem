@@ -10,7 +10,7 @@ go_library(
         "models.go",
         "stringextractors.go",
     ],
-    importpath = "github.com/pedroegsilva/gofindrules/finder",
+    importpath = "github.com/pedroegsilva/gotagthem/finder",
     visibility = ["//visibility:public"],
     deps = [
         "//dsl",

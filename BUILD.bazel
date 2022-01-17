@@ -1,4 +1,4 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
-# gazelle:prefix github.com/pedroegsilva/gofindrules
+# gazelle:prefix github.com/pedroegsilva/gotagthem
 gazelle(name = "gazelle")

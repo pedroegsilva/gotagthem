@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pedroegsilva/gofindrules/dsl"
+	"github.com/pedroegsilva/gotagthem/dsl"
 )
 
 type RuleFinder struct {
@@ -17,9 +17,13 @@ type RuleFinder struct {
 
 func NewRuleFinder(
 	stringExtractors []StringExtractor,
+	intExtractors []IntExtractor,
+	floatExtractors []FloatExtractor,
 ) *RuleFinder {
 	return &RuleFinder{
 		stringExtractors:       stringExtractors,
+		intExtractors:          intExtractors,
+		floatExtractors:        floatExtractors,
 		expressionsByName:      make(map[string][]*dsl.Expression),
 		rawExpressionByPointer: make(map[*dsl.Expression]string),
 	}
@@ -27,13 +31,11 @@ func NewRuleFinder(
 
 func NewRuleFinderWithRules(
 	stringExtractors []StringExtractor,
+	intExtractors []IntExtractor,
+	floatExtractors []FloatExtractor,
 	rulesByName map[string][]string,
 ) (finder *RuleFinder, err error) {
-	finder = &RuleFinder{
-		stringExtractors:       stringExtractors,
-		expressionsByName:      make(map[string][]*dsl.Expression),
-		rawExpressionByPointer: make(map[*dsl.Expression]string),
-	}
+	finder = NewRuleFinder(stringExtractors, intExtractors, floatExtractors)
 	err = finder.AddRules(rulesByName)
 	return
 }
