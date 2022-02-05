@@ -71,4 +71,10 @@ func main() {
 			fmt.Println("        statistics: ", info.RunData)
 		}
 	}
+
+	res, err := finder.ProcessObject(someObject)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res)
 }

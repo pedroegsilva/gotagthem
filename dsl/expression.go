@@ -48,9 +48,6 @@ type Expression struct {
 	RExpr *Expression
 	Type  ExprType
 	Tag   TagInfo
-
-	// used on solveOrder solver
-	val bool
 }
 
 // PatternResult stores if the patter was matched on
@@ -259,7 +256,7 @@ func (so SolverOrder) Solve(fieldPathByTag map[string][]string) (bool, error) {
 			return false, fmt.Errorf("unable to process expression type %d", exp.Type)
 		}
 	}
-	return so[0].val, nil
+	return values[so[0]], nil
 }
 
 // CreateSolverOrder traverses the expression tree in Preorder and

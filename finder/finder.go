@@ -11,8 +11,8 @@ type RuleFinder struct {
 	stringExtractors       []StringExtractor
 	intExtractors          []IntExtractor
 	floatExtractors        []FloatExtractor
-	expressionsByName      map[string][]*dsl.Expression
-	rawExpressionByPointer map[*dsl.Expression]string
+	solverOrderByExprName  map[string][]*dsl.SolverOrder
+	rawExpressionByPointer map[*dsl.SolverOrder]string
 }
 
 func NewRuleFinder(
@@ -24,8 +24,8 @@ func NewRuleFinder(
 		stringExtractors:       stringExtractors,
 		intExtractors:          intExtractors,
 		floatExtractors:        floatExtractors,
-		expressionsByName:      make(map[string][]*dsl.Expression),
-		rawExpressionByPointer: make(map[*dsl.Expression]string),
+		solverOrderByExprName:  make(map[string][]*dsl.SolverOrder),
+		rawExpressionByPointer: make(map[*dsl.SolverOrder]string),
 	}
 }
 
@@ -41,14 +41,15 @@ func NewRuleFinderWithRules(
 }
 
 func (rf *RuleFinder) AddRule(ruleName string, expressions []string) error {
-	for _, expr := range expressions {
-		p := dsl.NewParser(strings.NewReader(expr))
+	for _, rawExpr := range expressions {
+		p := dsl.NewParser(strings.NewReader(rawExpr))
 		exp, err := p.Parse()
 		if err != nil {
 			return err
 		}
-		rf.expressionsByName[ruleName] = append(rf.expressionsByName[ruleName], exp)
-		rf.rawExpressionByPointer[exp] = expr
+		so := exp.CreateSolverOrder()
+		rf.solverOrderByExprName[ruleName] = append(rf.solverOrderByExprName[ruleName], &so)
+		rf.rawExpressionByPointer[&so] = rawExpr
 	}
 	return nil
 }
@@ -155,7 +156,7 @@ func (rf *RuleFinder) SolveRules(
 	fieldsByTag map[string][]string,
 ) (expressionsByRule map[string][]string, err error) {
 	expressionsByRule = make(map[string][]string)
-	for name, exprs := range rf.expressionsByName {
+	for name, exprs := range rf.solverOrderByExprName {
 		for _, exp := range exprs {
 			eval, err := exp.Solve(fieldsByTag)
 			if err != nil {
