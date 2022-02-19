@@ -1,18 +1,25 @@
 package finder
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/pedroegsilva/gotagthem/dsl"
 )
 
+type ExpressionWrapper struct {
+	ExpressionString string
+	Expression       *dsl.Expression
+}
+
 type RuleFinder struct {
-	stringExtractors       []StringExtractor
-	intExtractors          []IntExtractor
-	floatExtractors        []FloatExtractor
-	solverOrderByExprName  map[string][]*dsl.SolverOrder
-	rawExpressionByPointer map[*dsl.SolverOrder]string
+	stringExtractors            []StringExtractor
+	intExtractors               []IntExtractor
+	floatExtractors             []FloatExtractor
+	expressionWrapperByExprName map[string][]ExpressionWrapper
+	fields                      map[string]struct{}
+	tags                        map[string]struct{}
 }
 
 func NewRuleFinder(
@@ -21,11 +28,12 @@ func NewRuleFinder(
 	floatExtractors []FloatExtractor,
 ) *RuleFinder {
 	return &RuleFinder{
-		stringExtractors:       stringExtractors,
-		intExtractors:          intExtractors,
-		floatExtractors:        floatExtractors,
-		solverOrderByExprName:  make(map[string][]*dsl.SolverOrder),
-		rawExpressionByPointer: make(map[*dsl.SolverOrder]string),
+		stringExtractors:            stringExtractors,
+		intExtractors:               intExtractors,
+		floatExtractors:             floatExtractors,
+		expressionWrapperByExprName: make(map[string][]ExpressionWrapper),
+		fields:                      make(map[string]struct{}),
+		tags:                        make(map[string]struct{}),
 	}
 }
 
@@ -47,9 +55,21 @@ func (rf *RuleFinder) AddRule(ruleName string, expressions []string) error {
 		if err != nil {
 			return err
 		}
-		so := exp.CreateSolverOrder()
-		rf.solverOrderByExprName[ruleName] = append(rf.solverOrderByExprName[ruleName], &so)
-		rf.rawExpressionByPointer[&so] = rawExpr
+		expWrapper := ExpressionWrapper{
+			ExpressionString: rawExpr,
+			Expression:       exp,
+		}
+		rf.expressionWrapperByExprName[ruleName] = append(rf.expressionWrapperByExprName[ruleName], expWrapper)
+		for _, tag := range p.GetTags() {
+			if tag != "" {
+				rf.tags[tag] = struct{}{}
+			}
+		}
+		for _, field := range p.GetFields() {
+			if field != "" {
+				rf.fields[field] = struct{}{}
+			}
+		}
 	}
 	return nil
 }
@@ -64,57 +84,86 @@ func (rf *RuleFinder) AddRules(rulesByName map[string][]string) error {
 	return nil
 }
 
+func (rf *RuleFinder) GetFieldNames() (fields []string) {
+	for field := range rf.fields {
+		fields = append(fields, field)
+	}
+
+	return
+}
+
 func (rf *RuleFinder) ExtractTagsObject(
 	data interface{},
-	fieldsPath []string,
-) (fieldsInfo []*FieldInfo, err error) {
+	includePaths []string,
+	excludePaths []string,
+) (fieldsInfo FieldsInfo, err error) {
+	err = rf.extractTagsObject(data, "", &fieldsInfo, includePaths, excludePaths)
+	return
+}
+
+func (rf *RuleFinder) extractTagsObject(
+	data interface{},
+	fieldName string,
+	fieldsInfo *FieldsInfo,
+	includePaths []string,
+	excludePaths []string,
+) (err error) {
 	t := reflect.TypeOf(data)
 	val := reflect.ValueOf(data)
 
 	switch val.Kind() {
 	case reflect.String:
+		if !validatePath(fieldName, includePaths, excludePaths) {
+			return
+		}
+
 		extractorInfoByExtractorName, err := rf.handleStringExtractors(val.String())
 		if err != nil {
-			return nil, err
+			return err
 		}
-		fieldInfo := &FieldInfo{Name: "", Extractors: extractorInfoByExtractorName}
-		fieldsInfo = append(fieldsInfo, fieldInfo)
+		fieldInfo := &FieldInfo{Name: fieldName, Extractors: extractorInfoByExtractorName}
+		*fieldsInfo = append(*fieldsInfo, fieldInfo)
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !validatePath(fieldName, includePaths, excludePaths) {
+			return
+		}
+
 		extractorInfoByExtractorName, err := rf.handleIntExtractors(val.Int())
 		if err != nil {
-			return nil, err
+			return err
 		}
-		fieldInfo := &FieldInfo{Name: "", Extractors: extractorInfoByExtractorName}
-		fieldsInfo = append(fieldsInfo, fieldInfo)
+		fieldInfo := &FieldInfo{Name: fieldName, Extractors: extractorInfoByExtractorName}
+		*fieldsInfo = append(*fieldsInfo, fieldInfo)
 
 	case reflect.Float32, reflect.Float64:
+		if !validatePath(fieldName, includePaths, excludePaths) {
+			return
+		}
+
 		extractorInfoByExtractorName, err := rf.handleFloatExtractors(val.Float())
 		if err != nil {
-			return nil, err
+			return err
 		}
-		fieldInfo := &FieldInfo{Name: "", Extractors: extractorInfoByExtractorName}
-		fieldsInfo = append(fieldsInfo, fieldInfo)
+
+		fieldInfo := &FieldInfo{Name: fieldName, Extractors: extractorInfoByExtractorName}
+		*fieldsInfo = append(*fieldsInfo, fieldInfo)
 
 	case reflect.Struct:
 		numField := t.NumField()
 
 		for i := 0; i < numField; i++ {
 			structField := t.Field(i)
-			res, err := rf.ExtractTagsObject(val.Field(i).Interface(), fieldsPath)
-			if err != nil {
-				return nil, err
+			fn := structField.Name
+			if fieldName != "" {
+				fn = fieldName + "." + fn
 			}
-
-			for _, fieldInfo := range res {
-				newName := structField.Name
-				if fieldInfo.Name != "" {
-					newName += "." + fieldInfo.Name
-				}
-				fieldInfo.Name = newName
-				fieldsInfo = append(fieldsInfo, fieldInfo)
+			err := rf.extractTagsObject(val.Field(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
+			if err != nil {
+				return err
 			}
 		}
+
 	case reflect.Map:
 		iter := val.MapRange()
 		for iter.Next() {
@@ -124,19 +173,25 @@ func (rf *RuleFinder) ExtractTagsObject(
 			}
 
 			v := iter.Value()
-			res, err := rf.ExtractTagsObject(v.Interface(), fieldsPath)
-			if err != nil {
-				return nil, err
+			fn := k.String()
+			if fieldName != "" {
+				fn = fieldName + "." + fn
 			}
+			err := rf.extractTagsObject(v.Interface(), fn, fieldsInfo, includePaths, excludePaths)
+			if err != nil {
+				return err
+			}
+		}
 
-			for _, fieldInfo := range res {
-				newName := k.String()
-				if fieldInfo.Name != "" {
-					newName += "." + fieldInfo.Name
-				}
-				fieldInfo.Name = newName
-				fieldInfo.Name = newName
-				fieldsInfo = append(fieldsInfo, fieldInfo)
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < val.Len(); i++ {
+			fn := fmt.Sprintf("index(%d)", i)
+			if fieldName != "" {
+				fn = fieldName + "." + fn
+			}
+			err := rf.extractTagsObject(val.Index(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -146,9 +201,8 @@ func (rf *RuleFinder) ExtractTagsObject(
 
 func (rf *RuleFinder) ExtractTagsText(
 	data string,
-	fieldsPath []string,
 ) (extractorInfoByExtractorName map[string]ExtractorInfo, err error) {
-	fieldsInfo, err := rf.ExtractTagsObject(data, fieldsPath)
+	fieldsInfo, err := rf.ExtractTagsObject(data, nil, nil)
 	return fieldsInfo[0].Extractors, err
 }
 
@@ -156,15 +210,14 @@ func (rf *RuleFinder) SolveRules(
 	fieldsByTag map[string][]string,
 ) (expressionsByRule map[string][]string, err error) {
 	expressionsByRule = make(map[string][]string)
-	for name, exprs := range rf.solverOrderByExprName {
-		for _, exp := range exprs {
-			eval, err := exp.Solve(fieldsByTag)
+	for name, exprWrappers := range rf.expressionWrapperByExprName {
+		for _, ew := range exprWrappers {
+			eval, err := ew.Expression.Solve(fieldsByTag)
 			if err != nil {
 				return nil, err
 			}
 			if eval {
-				rawExp := rf.rawExpressionByPointer[exp]
-				expressionsByRule[name] = append(expressionsByRule[name], rawExp)
+				expressionsByRule[name] = append(expressionsByRule[name], ew.ExpressionString)
 			}
 		}
 	}
@@ -173,28 +226,21 @@ func (rf *RuleFinder) SolveRules(
 
 func (rf *RuleFinder) ProcessObject(
 	obj interface{},
+	includePaths []string,
+	excludePaths []string,
 ) (expressionsByRule map[string][]string, err error) {
-	fieldsInfo, err := rf.ExtractTagsObject(obj, nil)
+	fieldsInfo, err := rf.ExtractTagsObject(obj, includePaths, excludePaths)
 	if err != nil {
 		return nil, err
 	}
 
-	fieldsByTag := make(map[string][]string)
-	for _, fieldInfo := range fieldsInfo {
-		for _, extractorInfo := range fieldInfo.Extractors {
-			for _, tag := range extractorInfo.Tags {
-				fieldsByTag[tag] = append(fieldsByTag[tag], fieldInfo.Name)
-			}
-		}
-	}
-
-	return rf.SolveRules(fieldsByTag)
+	return rf.SolveRules(fieldsInfo.GetFieldsByTag())
 }
 
 func (rf *RuleFinder) ProcessText(
 	data string,
 ) (expressionsByRule map[string][]string, err error) {
-	extractorInfoByExtractorName, err := rf.ExtractTagsText(data, nil)
+	extractorInfoByExtractorName, err := rf.ExtractTagsText(data)
 	if err != nil {
 		return nil, err
 	}
@@ -206,4 +252,25 @@ func (rf *RuleFinder) ProcessText(
 		}
 	}
 	return rf.SolveRules(fieldsByTag)
+}
+
+func validatePath(path string, includePaths []string, excludePaths []string) bool {
+	if len(excludePaths) > 0 {
+		for _, excP := range excludePaths {
+			if strings.HasPrefix(path, excP) {
+				return false
+			}
+		}
+	}
+
+	if len(includePaths) > 0 {
+		for _, incP := range includePaths {
+			if strings.HasPrefix(path, incP) {
+				return true
+			}
+		}
+		return false
+	}
+
+	return true
 }

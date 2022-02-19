@@ -15,14 +15,18 @@ type Parser struct {
 		unscanned bool   // if it was unscanned
 	}
 	parCount int
+	fields   map[string]struct{}
+	tags     map[string]struct{}
 }
 
 // NewParser returns a new instance of Parser.
-// If casesessitive is not set all terms are changed to lowercase
+// If case sensitive is not set all terms are changed to lowercase
 func NewParser(r io.Reader) *Parser {
 	return &Parser{
 		s:        NewScanner(r),
 		parCount: 0,
+		fields:   make(map[string]struct{}),
+		tags:     make(map[string]struct{}),
 	}
 }
 
@@ -70,6 +74,8 @@ func (p *Parser) parse() (*Expression, error) {
 			} else {
 				exp.RExpr = keyExp
 			}
+			p.fields[tag.FieldPath] = struct{}{}
+			p.tags[tag.Name] = struct{}{}
 
 		case AND:
 			exp, err = p.handleDualOp(exp, AND_EXPR)
@@ -268,4 +274,18 @@ func (p *Parser) parseTagInfo() (TagInfo, error) {
 
 	tagInfo.FieldPath = nextLit
 	return tagInfo, nil
+}
+
+func (p *Parser) GetFields() (fields []string) {
+	for field := range p.fields {
+		fields = append(fields, field)
+	}
+	return fields
+}
+
+func (p *Parser) GetTags() (tags []string) {
+	for tag := range p.tags {
+		tags = append(tags, tag)
+	}
+	return tags
 }

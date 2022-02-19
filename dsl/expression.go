@@ -86,7 +86,7 @@ func (exp *Expression) solve(
 			}
 
 			for _, fieldPath := range fieldPaths {
-				if fieldPath == exp.Tag.FieldPath {
+				if strings.HasPrefix(fieldPath, exp.Tag.FieldPath) {
 					return true, nil
 				}
 			}
@@ -96,7 +96,7 @@ func (exp *Expression) solve(
 
 	case AND_EXPR:
 		if exp.LExpr == nil || exp.RExpr == nil {
-			return false, fmt.Errorf("AND statment do not have rigth or left expression: %v", exp)
+			return false, fmt.Errorf("AND statement do not have right or left expression: %v", exp)
 		}
 		lval, err := exp.LExpr.solve(fieldPathByTag)
 		if err != nil {
@@ -110,7 +110,7 @@ func (exp *Expression) solve(
 		return lval && rval, nil
 	case OR_EXPR:
 		if exp.LExpr == nil || exp.RExpr == nil {
-			return false, fmt.Errorf("OR statment do not have rigth or left expression: %v", exp)
+			return false, fmt.Errorf("OR statement do not have right or left expression: %v", exp)
 		}
 		lval, err := exp.LExpr.solve(fieldPathByTag)
 		if err != nil {
@@ -167,117 +167,4 @@ func (exp *Expression) prettyFormat(lvl int) (pprint string) {
 	}
 
 	return
-}
-
-// SolverOrder store the expressions Preorder
-type SolverOrder []*Expression
-
-// Solve solves the expresion iteratively. It has the option to use a complete map of
-// PatternResult or a incomplete map. If the complete map option is used the map must have
-// all the terms needed to solve de expression or it will return an error.
-// If the incomplete map is used, missing keys will be considered as a no match on the
-// document.
-func (so SolverOrder) Solve(fieldPathByTag map[string][]string) (bool, error) {
-	values := make(map[*Expression]bool)
-	for i := len(so) - 1; i >= 0; i-- {
-		exp := so[i]
-		if exp == nil {
-			return false, fmt.Errorf("malformed solver order - solver order should not have nil values")
-		}
-	Switch:
-		switch exp.Type {
-		case UNIT_EXPR:
-			values[exp] = false
-			// exp.val = false
-			if fieldPaths, ok := fieldPathByTag[exp.Tag.Name]; ok {
-				if exp.Tag.FieldPath == "" {
-					// exp.val = true
-					values[exp] = true
-					break Switch
-				}
-
-				for _, fieldPath := range fieldPaths {
-					if fieldPath == exp.Tag.FieldPath {
-						values[exp] = true
-						// exp.val = true
-						break Switch
-					}
-				}
-			}
-		case AND_EXPR:
-			lval, ok := values[exp.LExpr]
-			if !ok {
-				return false, fmt.Errorf("AND statement do not have left expression: %v", exp)
-			}
-
-			rval, ok := values[exp.RExpr]
-			if !ok {
-				return false, fmt.Errorf("AND statement do not have right expression: %v", exp)
-			}
-			// if exp.LExpr == nil || exp.RExpr == nil {
-			// 	return false, fmt.Errorf("AND statement do not have right or left expression: %v", exp)
-			// }
-			values[exp] = lval && rval
-			// exp.val = exp.LExpr.val && exp.RExpr.val
-
-		case OR_EXPR:
-			lval, ok := values[exp.LExpr]
-			if !ok {
-				return false, fmt.Errorf("OR statement do not have left expression: %v", exp)
-			}
-
-			rval, ok := values[exp.RExpr]
-			if !ok {
-				return false, fmt.Errorf("OR statement do not have right expression: %v", exp)
-			}
-
-			// if exp.LExpr == nil || exp.RExpr == nil {
-			// 	return false, fmt.Errorf("OR statement do not have right or left expression: %v", exp)
-			// }
-
-			values[exp] = lval || rval
-			// exp.val = exp.LExpr.val || exp.RExpr.val
-
-		case NOT_EXPR:
-			rval, ok := values[exp.RExpr]
-			if !ok {
-				return false, fmt.Errorf("NOT statement do not have expression: %v", exp)
-			}
-
-			// if exp.RExpr == nil {
-			// 	return false, fmt.Errorf("NOT statement do not have expression: %v", exp)
-			// }
-
-			values[exp] = !rval
-
-			// exp.val = !exp.RExpr.val
-
-		default:
-			return false, fmt.Errorf("unable to process expression type %d", exp.Type)
-		}
-	}
-	return values[so[0]], nil
-}
-
-// CreateSolverOrder traverses the expression tree in Preorder and
-// stores the expressions on SolverOrder
-func (exp *Expression) CreateSolverOrder() SolverOrder {
-	solverOrder := new(SolverOrder)
-	cpExp := exp
-	createSolverOrder(cpExp, solverOrder)
-	return *solverOrder
-}
-
-// createSolverOrder recursion that traverses the expression
-// tree in Preorder
-func createSolverOrder(exp *Expression, arr *SolverOrder) {
-	(*arr) = append((*arr), exp)
-
-	if exp.LExpr != nil {
-		createSolverOrder(exp.LExpr, arr)
-	}
-
-	if exp.RExpr != nil {
-		createSolverOrder(exp.RExpr, arr)
-	}
 }

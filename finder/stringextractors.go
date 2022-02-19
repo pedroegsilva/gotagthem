@@ -16,15 +16,13 @@ type GoFindThemExtractor struct {
 
 func NewGoFindThemExtractor(expressionsByTag map[string][]string) (*GoFindThemExtractor, error) {
 	gfte := GoFindThemExtractor{
-		f: gofindthem.NewFinder(&gofindthem.AnknownEngine{}, &gofindthem.RegexpEngine{}, false),
+		f: gofindthem.NewFinder(&gofindthem.CloudflareForkEngine{}, &gofindthem.RegexpEngine{}, false),
 	}
 
 	for tag, exprs := range expressionsByTag {
-		for _, expr := range exprs {
-			err := gfte.f.AddExpressionWithTag(expr, tag)
-			if err != nil {
-				return nil, err
-			}
+		err := gfte.f.AddExpressionsWithTag(exprs, tag)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -32,10 +30,7 @@ func NewGoFindThemExtractor(expressionsByTag map[string][]string) (*GoFindThemEx
 }
 
 func (gfte *GoFindThemExtractor) IsValid(data string) bool {
-	if data == "" {
-		return false
-	}
-	return true
+	return data != ""
 }
 
 func (gfte *GoFindThemExtractor) ExtractTags(data string) (tags []string, runData interface{}, err error) {
@@ -46,14 +41,31 @@ func (gfte *GoFindThemExtractor) ExtractTags(data string) (tags []string, runDat
 
 	expressionsByTag := make(map[string][]string)
 	for _, res := range expRes {
-		if res.Evaluation {
-			tags = append(tags, res.Tag)
-			expressionsByTag[res.Tag] = append(expressionsByTag[res.Tag], res.ExpresionStr)
-		}
+		tags = append(tags, res.Tag)
+		expressionsByTag[res.Tag] = append(expressionsByTag[res.Tag], res.ExpresionStr)
 	}
 	return tags, expressionsByTag, nil
 }
 
 func (gfte *GoFindThemExtractor) GetName() string {
 	return "gofindthem"
+}
+
+type DummyExtractor struct {
+}
+
+func NewDummyExtractor() (*DummyExtractor, error) {
+	return &DummyExtractor{}, nil
+}
+
+func (de *DummyExtractor) IsValid(data string) bool {
+	return data != ""
+}
+
+func (de *DummyExtractor) ExtractTags(data string) (tags []string, runData interface{}, err error) {
+	return []string{"tagTest", "tagTest2"}, nil, nil
+}
+
+func (de *DummyExtractor) GetName() string {
+	return "dummyExtractor"
 }

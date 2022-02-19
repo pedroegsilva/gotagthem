@@ -27,16 +27,17 @@ def go_dependencies():
         version = "v1.1.0",
     )
     go_repository(
+        name = "com_github_pedroegsilva_ahocorasick",
+        importpath = "github.com/pedroegsilva/ahocorasick",
+        sum = "h1:N5egH9vhDB1eGp00uZmi8OFzb3cFrE9dG5MfrjRKcGc=",
+        version = "v0.1.0",
+    )
+
+    go_repository(
         name = "com_github_pedroegsilva_gofindthem",
         importpath = "github.com/pedroegsilva/gofindthem",
-        sum = "h1:VjP0mKy73fh1Gw8hq+zzbk9TXGLDb+uyi/hlHr8SvP0=",
-        version = "v0.2.1-0.20210926214542-6f26d2559b8c",
-    )
-    go_repository(
-        name = "com_github_petar_dambovaliev_aho_corasick",
-        importpath = "github.com/petar-dambovaliev/aho-corasick",
-        sum = "h1:WuXe30Ig5zUIYEHyzsLMBFPP5l0yRQ5IiZScODHwy8g=",
-        version = "v0.0.0-20210512121028-af76a9ff7276",
+        sum = "h1:VzZT3J7w/8Kn3VEyTsImT8QRdlNw7614uJ4AbHQLg9A=",
+        version = "v0.3.0",
     )
 
     go_repository(
