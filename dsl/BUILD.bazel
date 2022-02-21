@@ -19,4 +19,5 @@ go_test(
         "scanner_test.go",
     ],
     embed = [":dsl"],
+    deps = ["@com_github_stretchr_testify//assert"],
 )

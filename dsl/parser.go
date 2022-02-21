@@ -74,8 +74,10 @@ func (p *Parser) parse() (*Expression, error) {
 			} else {
 				exp.RExpr = keyExp
 			}
-			p.fields[tag.FieldPath] = struct{}{}
 			p.tags[tag.Name] = struct{}{}
+			if tag.FieldPath != "" {
+				p.fields[tag.FieldPath] = struct{}{}
+			}
 
 		case AND:
 			exp, err = p.handleDualOp(exp, AND_EXPR)
@@ -109,6 +111,10 @@ func (p *Parser) parse() (*Expression, error) {
 				notExp.RExpr = &Expression{
 					Type: UNIT_EXPR,
 					Tag:  tag,
+				}
+				p.tags[tag.Name] = struct{}{}
+				if tag.FieldPath != "" {
+					p.fields[tag.FieldPath] = struct{}{}
 				}
 
 			case OPPAR:

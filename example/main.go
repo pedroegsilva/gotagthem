@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pedroegsilva/gotagthem/finder"
+	"github.com/pedroegsilva/gotagthem/tagger"
 )
 
 func main() {
@@ -32,20 +32,20 @@ func main() {
 		"rule3": {`"tag3:Field3" or "tag4"`},
 	}
 
-	gfte, err := finder.NewGoFindThemExtractor(gofindthemRules)
+	gfte, err := tagger.NewGoFindThemTagger(gofindthemRules)
 	if err != nil {
 		panic(err)
 	}
-	de, err := finder.NewDummyExtractor()
+	de, err := tagger.NewDummyTagger()
 	if err != nil {
 		panic(err)
 	}
-	u, _ := finder.NewUselessIntExtractor()
-	stringExtractors := []finder.StringExtractor{gfte, de}
-	intExtractors := []finder.IntExtractor{u}
-	floatExtractors := []finder.FloatExtractor{}
+	u, _ := tagger.NewUselessIntTagger()
+	stringTaggers := []tagger.StringTagger{gfte, de}
+	intTaggers := []tagger.IntTagger{u}
+	floatTaggers := []tagger.FloatTagger{}
 
-	finder, err := finder.NewRuleFinderWithRules(stringExtractors, intExtractors, floatExtractors, rules)
+	tagger, err := tagger.NewTaggerWithRules(stringTaggers, intTaggers, floatTaggers, rules)
 	if err != nil {
 		panic(err)
 	}
@@ -69,52 +69,89 @@ func main() {
 		},
 	}
 
-	fmt.Println("finder.GetFieldNames()", finder.GetFieldNames())
-	fieldInfos, err := finder.ExtractTagsObject(someObject, finder.GetFieldNames(), nil)
+	fmt.Println("tagger.GetFieldNames()", tagger.GetFieldNames())
+	fieldInfos, err := tagger.TagObject(someObject, tagger.GetFieldNames(), nil)
 	if err != nil {
 		panic(err)
 	}
 	for _, fieldInfo := range fieldInfos {
 		fmt.Println(fieldInfo.Name)
-		for extractorName, info := range fieldInfo.Extractors {
+		for extractorName, info := range fieldInfo.Taggers {
 			fmt.Println("    ", extractorName)
 			fmt.Println("        tags: ", info.Tags)
 			fmt.Println("        statistics: ", info.RunData)
 		}
 	}
 
-	res, err := finder.ProcessObject(someObject, finder.GetFieldNames(), nil)
+	res, err := tagger.ProcessObject(someObject, tagger.GetFieldNames(), nil)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(res)
 
+	// fmt.Println("-----------------------------")
+	// arr := []struct {
+	// 	FieldN string
+	// 	FieldX string
+	// }{
+	// 	{FieldN: "some pretty text with string5"},
+	// 	{FieldN: "some pretty text with string2"},
+	// 	{FieldN: "some pretty text with string3"},
+	// }
+	// fmt.Println("tagger.GetFieldNames()", tagger.GetFieldNames())
+	// fieldInfos2, err := tagger.TagObject(arr, tagger.GetFieldNames(), nil)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// for _, fieldInfo := range fieldInfos2 {
+	// 	fmt.Println(fieldInfo.Name)
+	// 	for extractorName, info := range fieldInfo.Taggers {
+	// 		fmt.Println("    ", extractorName)
+	// 		fmt.Println("        tags: ", info.Tags)
+	// 		fmt.Println("        statistics: ", info.RunData)
+	// 	}
+	// }
+
+	// res2, err := tagger.ProcessObject(arr, tagger.GetFieldNames(), nil)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(res2)
+
 	fmt.Println("-----------------------------")
-	arr := []struct {
-		FieldN string
-		FieldX string
-	}{
-		{FieldN: "some pretty text with string5"},
-		{FieldN: "some pretty text with string2"},
-		{FieldN: "some pretty text with string3"},
+	rawJson := `
+	{
+		"Field1": "some pretty text with string1",
+		"Field2": 42,
+		"Field3":
+		{
+			"SomeField1": "some pretty text with string5",
+			"SomeField2":
+			[
+				"some pretty text with string5",
+				"some pretty text with string2",
+				"some pretty text with string3"
+			]
+		}
 	}
-	fmt.Println("finder.GetFieldNames()", finder.GetFieldNames())
-	fieldInfos2, err := finder.ExtractTagsObject(arr, finder.GetFieldNames(), nil)
+	`
+
+	fieldInfos3, err := tagger.TagJson(rawJson, tagger.GetFieldNames(), nil)
 	if err != nil {
 		panic(err)
 	}
-	for _, fieldInfo := range fieldInfos2 {
+	for _, fieldInfo := range fieldInfos3 {
 		fmt.Println(fieldInfo.Name)
-		for extractorName, info := range fieldInfo.Extractors {
+		for extractorName, info := range fieldInfo.Taggers {
 			fmt.Println("    ", extractorName)
 			fmt.Println("        tags: ", info.Tags)
 			fmt.Println("        statistics: ", info.RunData)
 		}
 	}
 
-	res2, err := finder.ProcessObject(arr, finder.GetFieldNames(), nil)
+	res3, err := tagger.ProcessJson(rawJson, tagger.GetFieldNames(), nil)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(res2)
+	fmt.Println(res3)
 }

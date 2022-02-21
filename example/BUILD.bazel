@@ -5,7 +5,7 @@ go_library(
     srcs = ["main.go"],
     importpath = "github.com/pedroegsilva/gotagthem/example",
     visibility = ["//visibility:private"],
-    deps = ["//finder"],
+    deps = ["//tagger"],
 )
 
 go_binary(

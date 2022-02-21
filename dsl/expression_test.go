@@ -1,447 +1,265 @@
 package dsl
 
-// func TestSolver(t *testing.T) {
-// 	assert := assert.New(t)
-// 	for _, tc := range solverTestCases {
-// 		exp, err := NewParser(strings.NewReader(tc.expStr), true).Parse()
-// 		assert.Nil(err, tc.message+" recursive")
-// 		respInt, err := exp.Solve(tc.solverMap, false)
-// 		assert.Nil(err, tc.message+" recursive")
-// 		assert.Equal(tc.expectedResp, respInt, tc.message+" recursive")
-// 	}
-// }
+import (
+	"strings"
+	"testing"
 
-// func TestSolverInter(t *testing.T) {
-// 	assert := assert.New(t)
-// 	for _, tc := range solverTestCases {
-// 		exp, err := NewParser(strings.NewReader(tc.expStr), true).Parse()
-// 		arr := exp.CreateSolverOrder()
-// 		assert.Nil(err, tc.message+" iter")
-// 		respInt, err := arr.Solve(tc.solverMap, false)
-// 		assert.Nil(err, tc.message+" iter")
-// 		assert.Equal(tc.expectedResp, respInt, tc.message+" iter")
-// 	}
-// }
+	"github.com/stretchr/testify/assert"
+)
 
-// // TODO(pedro.silva) create unit test for CreateSolverOrder
-// func TestCreateSolverOrder(t *testing.T) {
-// 	assert := assert.New(t)
+func TestSolver(t *testing.T) {
+	assert := assert.New(t)
+	for _, tc := range solverTestCases {
+		exp, err := NewParser(strings.NewReader(tc.expStr)).Parse()
+		assert.Nil(err, tc.message+" recursive")
+		respInt, err := exp.Solve(tc.fieldPathByTag)
+		assert.Nil(err, tc.message+" recursive")
+		assert.Equal(tc.expectedResp, respInt, tc.message+" recursive")
+	}
+}
 
-// 	unit1 := &Expression{
-// 		Type:    UNIT_EXPR,
-// 		Literal: "sharpest",
-// 	}
-// 	unit2 := &Expression{
-// 		Type:    UNIT_EXPR,
-// 		Literal: "words",
-// 	}
-// 	unit3 := &Expression{
-// 		Type:    UNIT_EXPR,
-// 		Literal: "no one",
-// 	}
+var solverTestCases = []struct {
+	expStr         string
+	fieldPathByTag map[string][]string
+	expectedResp   bool
+	message        string
+}{
+	{
+		expStr: `"tag1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+		},
+		expectedResp: true,
+		message:      "single tag true",
+	},
+	{
+		expStr:         `"tag1"`,
+		fieldPathByTag: map[string][]string{},
+		expectedResp:   false,
+		message:        "single tag false",
+	},
 
-// 	expr1 := &Expression{
-// 		Type:  OR_EXPR,
-// 		LExpr: unit2,
-// 		RExpr: unit3,
-// 	}
+	// and tests
+	{
+		expStr: `"tag1" and "tag2" and "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag2": nil,
+			"tag3": nil,
+		},
+		expectedResp: true,
+		message:      "and multi tags true",
+	},
+	{
+		expStr: `"tag1" and "tag2" and "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag2": nil,
+			"tag3": nil,
+		},
+		expectedResp: false,
+		message:      "and multi tags false 1",
+	},
+	{
+		expStr: `"tag1" and "tag2" and "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag3": nil,
+		},
+		expectedResp: false,
+		message:      "and multi tags false 2",
+	},
+	{
+		expStr: `"tag1" and "tag2" and "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag2": nil,
+		},
+		expectedResp: false,
+		message:      "and multi tags false 3",
+	},
 
-// 	//"sharpest" and "words" or "no one"
-// 	exp1 := &Expression{
-// 		Type:  AND_EXPR,
-// 		LExpr: unit1,
-// 		RExpr: expr1,
-// 	}
+	// or tests
+	{
+		expStr:         `"tag1" or "tag2" or "tag3"`,
+		fieldPathByTag: map[string][]string{},
+		expectedResp:   false,
+		message:        "or multi tag false",
+	},
+	{
+		expStr: `"tag1" or "tag2" or "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+		},
+		expectedResp: true,
+		message:      "or multi tag true 1",
+	},
+	{
+		expStr: `"tag1" or "tag2" or "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag2": nil,
+		},
+		expectedResp: true,
+		message:      "or multi tag true 2",
+	},
+	{
+		expStr: `"tag1" or "tag2" or "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag3": nil,
+		},
+		expectedResp: true,
+		message:      "or multi tag true 3",
+	},
 
-// 	notExp := &Expression{
-// 		Type:  NOT_EXPR,
-// 		RExpr: unit1,
-// 	}
-// 	// Not "sharpest" and "words" or "no one"
-// 	exp2 := &Expression{
-// 		Type:  AND_EXPR,
-// 		LExpr: notExp,
-// 		RExpr: expr1,
-// 	}
-
-// 	tests := []struct {
-// 		exp         *Expression
-// 		expectedArr SolverOrder
-// 		message     string
-// 	}{
-// 		{
-// 			exp:         exp1,
-// 			expectedArr: SolverOrder{exp1, unit1, expr1, unit2, unit3},
-// 			message:     `"sharpest" and "words" or "no one"`,
-// 		},
-// 		{
-// 			exp:         exp2,
-// 			expectedArr: SolverOrder{exp2, notExp, unit1, expr1, unit2, unit3},
-// 			message:     `Not "sharpest" and "words" or "no one"`,
-// 		},
-// 	}
-// 	for _, tc := range tests {
-// 		firstExp := tc.exp
-// 		arr := tc.exp.CreateSolverOrder()
-// 		assert.Equal(tc.expectedArr, arr, tc.message)
-// 		// Asserts that the expression was not changed by the createSolver order
-// 		assert.Equal(firstExp, tc.exp, tc.message)
-// 	}
-// }
-
-// var solverTestCases = []struct {
-// 	expStr       string
-// 	solverMap    map[string]PatternResult
-// 	expectedResp bool
-// 	message      string
-// }{
-// 	{
-// 		expStr: `"1"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "single word true",
-// 	},
-// 	{
-// 		expStr:       `"1"`,
-// 		solverMap:    map[string]PatternResult{},
-// 		expectedResp: false,
-// 		message:      "single word false",
-// 	},
-
-// 	// and tests
-// 	{
-// 		expStr: `"1" and "2" and "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"2": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "and multi term true",
-// 	},
-// 	{
-// 		expStr: `"1" and "2" and "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"2": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "and multi term false 1",
-// 	},
-// 	{
-// 		expStr: `"1" and "2" and "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "and multi term false 2",
-// 	},
-// 	{
-// 		expStr: `"1" and "2" and "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"2": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "and multi term false 3",
-// 	},
-
-// 	// or tests
-// 	{
-// 		expStr:       `"1" or "2" or "3"`,
-// 		solverMap:    map[string]PatternResult{},
-// 		expectedResp: false,
-// 		message:      "or multi term false",
-// 	},
-// 	{
-// 		expStr: `"1" or "2" or "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "or multi term true 1",
-// 	},
-// 	{
-// 		expStr: `"1" or "2" or "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"2": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "or multi term true 2",
-// 	},
-// 	{
-// 		expStr: `"1" or "2" or "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "or multi term true 3",
-// 	},
-
-// 	// not tests
-// 	{
-// 		expStr:       `not "1"`,
-// 		solverMap:    map[string]PatternResult{},
-// 		expectedResp: true,
-// 		message:      "not true",
-// 	},
-// 	{
-// 		expStr: `not "1"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "not false",
-// 	},
-// 	{
-// 		expStr: `not "1" or not "2"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"2": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "not multi false",
-// 	},
-// 	{
-// 		expStr: `not ("1" or "2") or "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "not multi true",
-// 	},
-// 	{
-// 		expStr: `"1" and not "2" or "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "not multi true 1",
-// 	},
-// 	{
-// 		expStr: ` not "2" and "1" or "3"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "not multi true 2",
-// 	},
-// 	{
-// 		expStr: `"1" and "3" or not "2"`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "not multi true 3",
-// 	},
-// 	// parentheses tests
-// 	{
-// 		expStr: `not ("1" and "2") and ("1" or "2")`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"2": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "parentheses xor 1",
-// 	},
-// 	{
-// 		expStr:       `("1" or "2") and not ("1" and "2")`,
-// 		solverMap:    map[string]PatternResult{},
-// 		expectedResp: false,
-// 		message:      "parentheses xor 2",
-// 	},
-// 	{
-// 		expStr: `not ("1" and "2") and ("1" or "2")`,
-// 		solverMap: map[string]PatternResult{
-// 			"2": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "parentheses xor 3",
-// 	},
-// 	{
-// 		expStr: `("1" or "2") and not (r"1" and "2")`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "parentheses xor 4 with regex",
-// 	},
-// 	{
-// 		expStr: `(("1" and "2" and "3") or ("4" and not "5")) and ("6" or "7") and "8"`,
-// 		solverMap: map[string]PatternResult{
-// 			"4": PatternResult{Val: true},
-// 			"6": PatternResult{Val: true},
-// 			"8": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "parentheses 1",
-// 	},
-// 	{
-// 		expStr: `(("1" and "2" and "3") or ("4" and not "5")) and ("6" or "7") and "8"`,
-// 		solverMap: map[string]PatternResult{
-// 			"4": PatternResult{Val: true},
-// 			"6": PatternResult{Val: true},
-// 		},
-// 		expectedResp: false,
-// 		message:      "parentheses 2",
-// 	},
-// 	{
-// 		expStr: `(not ("1" and "2" and r"3") or ("4" and not r"5"))`,
-// 		solverMap: map[string]PatternResult{
-// 			"1": PatternResult{Val: true},
-// 			"2": PatternResult{Val: true},
-// 			"3": PatternResult{Val: true},
-// 			"4": PatternResult{Val: true},
-// 		},
-// 		expectedResp: true,
-// 		message:      "parentheses with regex",
-// 	},
-// 	// inord tests
-// 	{
-// 		expStr: `inord("a" and "b" and "c")`,
-// 		// acabXaXcb
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 2, 5},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{3, 8},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1, 7},
-// 			},
-// 		},
-// 		expectedResp: true,
-// 		message:      "inord true",
-// 	},
-// 	{
-// 		expStr: `inord("a" and ("b" or "c"))`,
-// 		// cbac
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{2},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 3},
-// 			},
-// 		},
-// 		expectedResp: true,
-// 		message:      "inord with or",
-// 	},
-// 	{
-// 		expStr: `inord("a" and "b" and "c")`,
-// 		// bacb
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 3},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{2},
-// 			},
-// 		},
-// 		expectedResp: false,
-// 		message:      "inord false 1",
-// 	},
-// 	{
-// 		expStr: `inord("a" and "b" and "c")`,
-// 		// bcab
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{2},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 3},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1},
-// 			},
-// 		},
-// 		expectedResp: false,
-// 		message:      "inord false 2",
-// 	},
-// 	{
-// 		expStr: `inord(("b" or "c") and ("a" or "b"))`,
-// 		// bcab
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{2},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 3},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1},
-// 			},
-// 		},
-// 		expectedResp: true,
-// 		message:      "inord multiple or with repeated key",
-// 	},
-// 	{
-// 		expStr: `inord("b" and "c") and inord("a" and "b")`,
-// 		// bcab
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{2},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 3},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1},
-// 			},
-// 		},
-// 		expectedResp: true,
-// 		message:      "multiple inord",
-// 	},
-// 	{
-// 		expStr: `inord("b" and r"c") and inord(r"a" and "b")`,
-// 		// bcab
-// 		solverMap: map[string]PatternResult{
-// 			"a": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{2},
-// 			},
-// 			"b": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{0, 3},
-// 			},
-// 			"c": PatternResult{
-// 				Val:            true,
-// 				SortedMatchPos: []int{1},
-// 			},
-// 		},
-// 		expectedResp: true,
-// 		message:      "multiple inord with regex",
-// 	},
-// }
+	// not tests
+	{
+		expStr:         `not "tag1"`,
+		fieldPathByTag: map[string][]string{},
+		expectedResp:   true,
+		message:        "not true",
+	},
+	{
+		expStr: `not "tag1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+		},
+		expectedResp: false,
+		message:      "not false",
+	},
+	{
+		expStr: `not "tag1" or not "tag2"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag2": nil,
+		},
+		expectedResp: false,
+		message:      "not multi false",
+	},
+	{
+		expStr: `not ("tag1" or "tag2") or "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag3": nil,
+		},
+		expectedResp: true,
+		message:      "not multi true",
+	},
+	{
+		expStr: `"tag1" and not "tag2" or "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag3": nil,
+		},
+		expectedResp: true,
+		message:      "not multi true 1",
+	},
+	{
+		expStr: ` not "tag2" and "tag1" or "tag3"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag3": nil,
+		},
+		expectedResp: true,
+		message:      "not multi true 2",
+	},
+	{
+		expStr: `"tag1" and "tag3" or not "tag2"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag3": nil,
+		},
+		expectedResp: true,
+		message:      "not multi true 3",
+	},
+	// parentheses tests
+	{
+		expStr: `not ("tag1" and "tag2") and ("tag1" or "tag2")`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+			"tag2": nil,
+		},
+		expectedResp: false,
+		message:      "parentheses xor 1",
+	},
+	{
+		expStr:         `("tag1" or "tag2") and not ("tag1" and "tag2")`,
+		fieldPathByTag: map[string][]string{},
+		expectedResp:   false,
+		message:        "parentheses xor 2",
+	},
+	{
+		expStr: `not ("tag1" and "tag2") and ("tag1" or "tag2")`,
+		fieldPathByTag: map[string][]string{
+			"tag2": nil,
+		},
+		expectedResp: true,
+		message:      "parentheses xor 3",
+	},
+	{
+		expStr: `(("tag1" and "tag2" and "tag3") or ("tag4" and not "tag5")) and ("tag6" or "tag7") and "tag8"`,
+		fieldPathByTag: map[string][]string{
+			"tag4": nil,
+			"tag6": nil,
+			"tag8": nil,
+		},
+		expectedResp: true,
+		message:      "parentheses 1",
+	},
+	{
+		expStr: `(("tag1" and "tag2" and "tag3") or ("tag4" and not "tag5")) and ("tag6" or "tag7") and "tag8"`,
+		fieldPathByTag: map[string][]string{
+			"tag4": nil,
+			"tag6": nil,
+		},
+		expectedResp: false,
+		message:      "parentheses 2",
+	},
+	// field tests
+	{
+		expStr: `"tag1:field1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": {"field1"},
+		},
+		expectedResp: true,
+		message:      "single tag with field true 1",
+	},
+	{
+		expStr: `"tag1:field1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": {"field3", "field2", "field1"},
+		},
+		expectedResp: true,
+		message:      "single tag with field true 2",
+	},
+	{
+		expStr: `"tag1:field1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": nil,
+		},
+		expectedResp: false,
+		message:      "single tag with field false 1",
+	},
+	{
+		expStr: `"tag1:field1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": {"field2", "field3"},
+		},
+		expectedResp: false,
+		message:      "single tag with field false 2",
+	},
+	{
+		expStr: `"tag1:field1"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": {"field1.field2.field3.index(2)"},
+		},
+		expectedResp: true,
+		message:      "single tag with field partial field true 1",
+	},
+	{
+		expStr: `"tag1:field"`,
+		fieldPathByTag: map[string][]string{
+			"tag1": {"field2"},
+		},
+		expectedResp: true,
+		message:      "single tag with field partial field true 2",
+	},
+}

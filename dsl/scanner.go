@@ -18,8 +18,8 @@ const (
 	WS
 
 	// Literals
-	TAG        // "keyword"
-	FIELD_PATH // "keyword"
+	TAG        // "tag"
+	FIELD_PATH // "tag"
 
 	// Misc characters
 	QUOTATION // "
@@ -168,13 +168,13 @@ func (s *Scanner) scanOperators() (tok Token, lit string, err error) {
 	return
 }
 
-// scanTag scans the keyword and scape needed characters
+// scanTag scans the tag and scape needed characters
 // If a invalid scape is used an error will be returned and if EOF is found
 // before a '"' returns an error as well.
 func (s *Scanner) scanTag() (tok Token, lit string, err error) {
 	ch := s.read()
 	if ch != '"' {
-		return ILLEGAL, "", fmt.Errorf("fail to scan keyword: expected \" but found %c", ch)
+		return ILLEGAL, "", fmt.Errorf("fail to scan tag: expected \" but found %c", ch)
 	}
 	var buf bytes.Buffer
 
@@ -190,7 +190,7 @@ Loop:
 			case '\\', '"', ':':
 				_, _ = buf.WriteRune(scapedCh)
 			default:
-				return ILLEGAL, "", fmt.Errorf("fail to scan keyword: invalid escaped char %c", scapedCh)
+				return ILLEGAL, "", fmt.Errorf("fail to scan tag: invalid escaped char %c", scapedCh)
 			}
 		case ':':
 			s.unread()
@@ -206,7 +206,7 @@ Loop:
 	return
 }
 
-// scanFieldPath scans the keyword and scape needed characters
+// scanFieldPath scans the tag and scape needed characters
 // If a invalid scape is used an error will be returned and if EOF is found
 // before a '"' returns an error as well.
 func (s *Scanner) scanFieldPath() (tok Token, lit string, err error) {
