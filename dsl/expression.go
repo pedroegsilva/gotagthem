@@ -34,14 +34,13 @@ func (exprType ExprType) GetName() string {
 	}
 }
 
-// Expression can be a literal (UNIT) or a function composed by
-// one or two other expressions (NOT, AND, OR).
+// TagInfo holds the name of the tag and the field path prefix that it need to be found at.
 type TagInfo struct {
 	Name      string
 	FieldPath string
 }
 
-// Expression can be a literal (UNIT) or a function composed by
+// Expression can be a TagInfo (UNIT) or a function composed by
 // one or two other expressions (NOT, AND, OR).
 type Expression struct {
 	LExpr *Expression
@@ -50,23 +49,14 @@ type Expression struct {
 	Tag   TagInfo
 }
 
-// PatternResult stores if the patter was matched on
-// the text and the positions it was found
-type PatternResult struct {
-	Val            bool
-	SortedMatchPos []int
-}
-
 // GetTypeName returns the type of the expression with a readable name
 func (exp *Expression) GetTypeName() string {
 	return exp.Type.GetName()
 }
 
-// Solve solves the expresion recursively. It has the option to use a complete map of
-// PatternResult or a incomplete map. If the complete map option is used the map must have
-// all the terms needed to solve de expression or it will return an error.
-// If the incomplete map is used, missing keys will be considered as a no match on the
-// document.
+// Solve solves the expresion using the ginven values of fieldPathByTag.
+// fieldPathByTag will hold the values of all tags that were found with a
+// list of field paths that the tag was found
 func (exp *Expression) Solve(
 	fieldPathByTag map[string][]string,
 ) (bool, error) {
@@ -75,9 +65,7 @@ func (exp *Expression) Solve(
 }
 
 //solve implements Solve
-func (exp *Expression) solve(
-	fieldPathByTag map[string][]string,
-) (bool, error) {
+func (exp *Expression) solve(fieldPathByTag map[string][]string) (bool, error) {
 	switch exp.Type {
 	case UNIT_EXPR:
 		if fieldPaths, ok := fieldPathByTag[exp.Tag.Name]; ok {
@@ -136,7 +124,7 @@ func (exp *Expression) solve(
 	}
 }
 
-// PrettyPrint returns the expression formated on a tabbed structure
+// PrettyFormat returns the expression formated on a tabbed structure
 // Eg: for the expression ("a" and "b") or "c"
 //    OR
 //        AND
@@ -147,6 +135,7 @@ func (exp *Expression) PrettyFormat() string {
 	return exp.prettyFormat(0)
 }
 
+// prettyFormat implementation of PrettyFormat()
 func (exp *Expression) prettyFormat(lvl int) (pprint string) {
 	tabs := "    "
 	onLVL := strings.Repeat(tabs, lvl)

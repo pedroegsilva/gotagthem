@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-func (rf *Tagger) extractTagsObject(
+// setFieldInfos adds to the fieldsInfo the information extracteds by all the taggers
+func (rf *Tagger) setFieldInfos(
 	data interface{},
 	fieldName string,
 	fieldsInfo *FieldsInfo,
@@ -17,7 +18,7 @@ func (rf *Tagger) extractTagsObject(
 	val := reflect.ValueOf(data)
 	switch val.Kind() {
 	case reflect.String:
-		if !validatePath(fieldName, includePaths, excludePaths) {
+		if !isValidateFieldPath(fieldName, includePaths, excludePaths) {
 			return
 		}
 
@@ -29,7 +30,7 @@ func (rf *Tagger) extractTagsObject(
 		*fieldsInfo = append(*fieldsInfo, fieldInfo)
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if !validatePath(fieldName, includePaths, excludePaths) {
+		if !isValidateFieldPath(fieldName, includePaths, excludePaths) {
 			return
 		}
 
@@ -41,7 +42,7 @@ func (rf *Tagger) extractTagsObject(
 		*fieldsInfo = append(*fieldsInfo, fieldInfo)
 
 	case reflect.Float32, reflect.Float64:
-		if !validatePath(fieldName, includePaths, excludePaths) {
+		if !isValidateFieldPath(fieldName, includePaths, excludePaths) {
 			return
 		}
 
@@ -62,7 +63,7 @@ func (rf *Tagger) extractTagsObject(
 			if fieldName != "" {
 				fn = fieldName + "." + fn
 			}
-			err := rf.extractTagsObject(val.Field(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
+			err := rf.setFieldInfos(val.Field(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
 			if err != nil {
 				return err
 			}
@@ -81,7 +82,7 @@ func (rf *Tagger) extractTagsObject(
 			if fieldName != "" {
 				fn = fieldName + "." + fn
 			}
-			err := rf.extractTagsObject(v.Interface(), fn, fieldsInfo, includePaths, excludePaths)
+			err := rf.setFieldInfos(v.Interface(), fn, fieldsInfo, includePaths, excludePaths)
 			if err != nil {
 				return err
 			}
@@ -93,7 +94,7 @@ func (rf *Tagger) extractTagsObject(
 			if fieldName != "" {
 				fn = fieldName + "." + fn
 			}
-			err := rf.extractTagsObject(val.Index(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
+			err := rf.setFieldInfos(val.Index(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
 			if err != nil {
 				return err
 			}
@@ -103,6 +104,7 @@ func (rf *Tagger) extractTagsObject(
 	return
 }
 
+// handleFloatTaggers hander of taggers of the type float
 func (rf *Tagger) handleFloatTaggers(
 	data float64,
 ) (extractorInfoByTaggerName map[string]TaggerInfo, err error) {
@@ -122,6 +124,7 @@ func (rf *Tagger) handleFloatTaggers(
 	return
 }
 
+// handleFloatTaggers hander of taggers of the type int
 func (rf *Tagger) handleIntTaggers(
 	data int64,
 ) (extractorInfoByTaggerName map[string]TaggerInfo, err error) {
@@ -142,6 +145,7 @@ func (rf *Tagger) handleIntTaggers(
 	return
 }
 
+// handleFloatTaggers hander of taggers of the type string
 func (rf *Tagger) handleStringTaggers(
 	data string,
 ) (extractorInfoByTaggerName map[string]TaggerInfo, err error) {
@@ -162,10 +166,11 @@ func (rf *Tagger) handleStringTaggers(
 	return
 }
 
-func validatePath(path string, includePaths []string, excludePaths []string) bool {
+// isValidateFieldPath returns true if the field path is valid for tagging
+func isValidateFieldPath(fieldPath string, includePaths []string, excludePaths []string) bool {
 	if len(excludePaths) > 0 {
 		for _, excP := range excludePaths {
-			if strings.HasPrefix(path, excP) {
+			if strings.HasPrefix(fieldPath, excP) {
 				return false
 			}
 		}
@@ -173,7 +178,7 @@ func validatePath(path string, includePaths []string, excludePaths []string) boo
 
 	if len(includePaths) > 0 {
 		for _, incP := range includePaths {
-			if strings.HasPrefix(path, incP) {
+			if strings.HasPrefix(fieldPath, incP) {
 				return true
 			}
 		}

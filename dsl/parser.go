@@ -36,8 +36,7 @@ func (p *Parser) Parse() (expr *Expression, err error) {
 	return p.parse()
 }
 
-// parse parses the expression and returns the root node
-// of the parsed expression.
+// parse implementation of Parse()
 func (p *Parser) parse() (*Expression, error) {
 	exp := &Expression{}
 	for {
@@ -282,6 +281,7 @@ func (p *Parser) parseTagInfo() (TagInfo, error) {
 	return tagInfo, nil
 }
 
+// GetFields returns the list of unique fields that were found on the expression
 func (p *Parser) GetFields() (fields []string) {
 	for field := range p.fields {
 		fields = append(fields, field)
@@ -289,6 +289,7 @@ func (p *Parser) GetFields() (fields []string) {
 	return fields
 }
 
+// GetTags returns the list of unique tags that were found on the expression
 func (p *Parser) GetTags() (tags []string) {
 	for tag := range p.tags {
 		tags = append(tags, tag)

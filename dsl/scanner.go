@@ -19,7 +19,7 @@ const (
 
 	// Literals
 	TAG        // "tag"
-	FIELD_PATH // "tag"
+	FIELD_PATH // "tag:fieldpath"
 
 	// Misc characters
 	QUOTATION // "
@@ -32,7 +32,7 @@ const (
 	NOT // 'not' or 'NOT'
 )
 
-// getName retuns a readable name for the Token
+// getName returns a readable name for the Token
 func (tok Token) getName() string {
 	switch tok {
 	case ILLEGAL:
@@ -79,7 +79,7 @@ func (s *Scanner) Scan() (tok Token, lit string, err error) {
 
 	// If we see whitespace then consume all contiguous whitespace.
 	// If we see a letter then consume as an operator.
-	// If we see a '"' consume as a KEYWORD.
+	// If we see a '"' consume as a TAG.
 	// If we see a '(' or ')' returns OPPAR or CLPAR respectively
 	switch {
 	case isWhitespace(ch):

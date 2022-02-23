@@ -2,28 +2,33 @@ package tagger
 
 import gofindthem "github.com/pedroegsilva/gofindthem/finder"
 
+// StringTagger interface of a tagger that process strings
 type StringTagger interface {
 	IsValid(data string) bool
 	GetTags(data string) (tags []string, runData interface{}, err error)
 	GetName() string
 }
 
+// StringTagger interface of a tagger that process integers
 type IntTagger interface {
 	IsValid(data int64) bool
 	GetTags(data int64) (tags []string, runData interface{}, err error)
 	GetName() string
 }
 
+// StringTagger interface of a tagger that process floats
 type FloatTagger interface {
 	IsValid(data float64) bool
 	GetTags(data float64) (tags []string, runData interface{}, err error)
 	GetName() string
 }
 
+// GoFindThemTagger is a string tagger that uses the gofindthem library to tag.
 type GoFindThemTagger struct {
 	f *gofindthem.Finder
 }
 
+// NewGoFindThemTagger initializes the GoFindThemTagger with the given expressions and tags
 func NewGoFindThemTagger(expressionsByTag map[string][]string) (*GoFindThemTagger, error) {
 	gfte := GoFindThemTagger{
 		f: gofindthem.NewFinder(&gofindthem.CloudflareForkEngine{}, &gofindthem.RegexpEngine{}, false),
@@ -39,10 +44,13 @@ func NewGoFindThemTagger(expressionsByTag map[string][]string) (*GoFindThemTagge
 	return &gfte, nil
 }
 
+// IsValid all non empty texts are valid for the GoFindThemTagger
 func (gfte *GoFindThemTagger) IsValid(data string) bool {
 	return data != ""
 }
 
+// GetTags gets the tags for the given data and returns the on the runData the expressions
+// that were matched by their tags
 func (gfte *GoFindThemTagger) GetTags(data string) (tags []string, runData interface{}, err error) {
 	expRes, err := gfte.f.ProcessText(data)
 	if err != nil {
@@ -57,49 +65,7 @@ func (gfte *GoFindThemTagger) GetTags(data string) (tags []string, runData inter
 	return tags, expressionsByTag, nil
 }
 
+// GetName returns the string 'gofindthem'
 func (gfte *GoFindThemTagger) GetName() string {
 	return "gofindthem"
-}
-
-type DummyTagger struct {
-}
-
-func NewDummyTagger() (*DummyTagger, error) {
-	return &DummyTagger{}, nil
-}
-
-func (de *DummyTagger) IsValid(data string) bool {
-	return data != ""
-}
-
-func (de *DummyTagger) GetTags(data string) (tags []string, runData interface{}, err error) {
-	return []string{"tagTest", "tagTest2"}, nil, nil
-}
-
-func (de *DummyTagger) GetName() string {
-	return "dummyTagger"
-}
-
-type UselessIntTagger struct{}
-
-func NewUselessIntTagger() (*UselessIntTagger, error) {
-	return &UselessIntTagger{}, nil
-}
-
-func (uie *UselessIntTagger) IsValid(data int64) bool {
-	return data >= 0
-}
-
-func (uie *UselessIntTagger) GetTags(data int64) (tags []string, runData interface{}, err error) {
-	if data == 42 {
-		tags = append(tags, "right")
-	} else {
-		tags = append(tags, "wrong")
-	}
-
-	return tags, nil, nil
-}
-
-func (uie *UselessIntTagger) GetName() string {
-	return "uselessInt"
 }
