@@ -1,27 +1,6 @@
-package tagger
+package main
 
 import gofindthem "github.com/pedroegsilva/gofindthem/finder"
-
-// StringTagger interface of a tagger that process strings
-type StringTagger interface {
-	IsValid(data string) bool
-	GetTags(data string) (tags []string, runData interface{}, err error)
-	GetName() string
-}
-
-// StringTagger interface of a tagger that process integers
-type IntTagger interface {
-	IsValid(data int64) bool
-	GetTags(data int64) (tags []string, runData interface{}, err error)
-	GetName() string
-}
-
-// StringTagger interface of a tagger that process floats
-type FloatTagger interface {
-	IsValid(data float64) bool
-	GetTags(data float64) (tags []string, runData interface{}, err error)
-	GetName() string
-}
 
 // GoFindThemTagger is a string tagger that uses the gofindthem library to tag.
 type GoFindThemTagger struct {

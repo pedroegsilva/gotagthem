@@ -32,17 +32,13 @@ func main() {
 		"rule3": {`"tag3:Field3" or "tag4"`},
 	}
 
-	gfte, err := tagger.NewGoFindThemTagger(gofindthemRules)
+	gfte, err := NewGoFindThemTagger(gofindthemRules)
 	if err != nil {
 		panic(err)
 	}
-	de, err := tagger.NewDummyTagger()
-	if err != nil {
-		panic(err)
-	}
-	u, _ := tagger.NewUselessIntTagger()
-	stringTaggers := []tagger.StringTagger{gfte, de}
-	intTaggers := []tagger.IntTagger{u}
+
+	stringTaggers := []tagger.StringTagger{gfte}
+	intTaggers := []tagger.IntTagger{}
 	floatTaggers := []tagger.FloatTagger{}
 
 	tagger, err := tagger.NewTaggerWithRules(stringTaggers, intTaggers, floatTaggers, rules)

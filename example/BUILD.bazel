@@ -2,10 +2,16 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "example_lib",
-    srcs = ["main.go"],
+    srcs = [
+        "gofindthemtagger.go",
+        "main.go",
+    ],
     importpath = "github.com/pedroegsilva/gotagthem/example",
     visibility = ["//visibility:private"],
-    deps = ["//tagger"],
+    deps = [
+        "//tagger",
+        "@com_github_pedroegsilva_gofindthem//finder",
+    ],
 )
 
 go_binary(

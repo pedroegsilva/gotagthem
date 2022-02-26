@@ -15,7 +15,13 @@ func (rf *Tagger) setFieldInfos(
 	excludePaths []string,
 ) (err error) {
 	t := reflect.TypeOf(data)
+
 	val := reflect.ValueOf(data)
+
+	if !val.CanInterface() {
+		return
+	}
+
 	switch val.Kind() {
 	case reflect.String:
 		if !isValidateFieldPath(fieldName, includePaths, excludePaths) {
@@ -63,6 +69,9 @@ func (rf *Tagger) setFieldInfos(
 			if fieldName != "" {
 				fn = fieldName + "." + fn
 			}
+			if !val.Field(i).CanInterface() {
+				continue
+			}
 			err := rf.setFieldInfos(val.Field(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
 			if err != nil {
 				return err
@@ -82,6 +91,9 @@ func (rf *Tagger) setFieldInfos(
 			if fieldName != "" {
 				fn = fieldName + "." + fn
 			}
+			if !v.CanInterface() {
+				continue
+			}
 			err := rf.setFieldInfos(v.Interface(), fn, fieldsInfo, includePaths, excludePaths)
 			if err != nil {
 				return err
@@ -93,6 +105,9 @@ func (rf *Tagger) setFieldInfos(
 			fn := fmt.Sprintf("index(%d)", i)
 			if fieldName != "" {
 				fn = fieldName + "." + fn
+			}
+			if !val.Index(i).CanInterface() {
+				continue
 			}
 			err := rf.setFieldInfos(val.Index(i).Interface(), fn, fieldsInfo, includePaths, excludePaths)
 			if err != nil {
