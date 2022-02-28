@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "tagger",
+    srcs = [
+        "internal.go",
+        "tagger.go",
+    ],
+    importpath = "github.com/pedroegsilva/gotagthem/tagger",
+    visibility = ["//visibility:public"],
+    deps = ["//dsl"],
+)
+
+go_test(
+    name = "tagger_test",
+    srcs = [
+        "internal_test.go",
+        "tagger_test.go",
+    ],
+    embed = [":tagger"],
+    deps = [
+        "//dsl",
+        "@com_github_stretchr_testify//assert",
+    ],
+)
