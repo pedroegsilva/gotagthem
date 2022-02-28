@@ -1,36 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "finder",
-    srcs = [
-        "extractors.go",
-        "internal.go",
-        "labeller.go",
-    ],
-    importpath = "github.com/pedroegsilva/gotagthem/finder",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//dsl",
-        "@com_github_pedroegsilva_gofindthem//finder",
-    ],
-)
-
-go_library(
-    name = "labeller",
-    srcs = [
-        "extractors.go",
-        "internal.go",
-        "labeller.go",
-    ],
-    importpath = "github.com/pedroegsilva/gotagthem/labeller",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//dsl",
-        "@com_github_pedroegsilva_gofindthem//finder",
-    ],
-)
-
-go_library(
     name = "tagger",
     srcs = [
         "internal.go",
@@ -43,7 +13,13 @@ go_library(
 
 go_test(
     name = "tagger_test",
-    srcs = ["tagger_test.go"],
+    srcs = [
+        "internal_test.go",
+        "tagger_test.go",
+    ],
     embed = [":tagger"],
-    deps = ["@com_github_stretchr_testify//assert"],
+    deps = [
+        "//dsl",
+        "@com_github_stretchr_testify//assert",
+    ],
 )

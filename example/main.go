@@ -65,11 +65,11 @@ func main() {
 		},
 	}
 
-	fmt.Println("tagger.GetFieldNames()", tagger.GetFieldNames())
 	fieldInfos, err := tagger.TagObject(someObject, tagger.GetFieldNames(), nil)
 	if err != nil {
 		panic(err)
 	}
+
 	for _, fieldInfo := range fieldInfos {
 		fmt.Println(fieldInfo.Name)
 		for extractorName, info := range fieldInfo.Taggers {
@@ -83,36 +83,36 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(res)
+	fmt.Println("ProcessObject: ", res)
 
-	// fmt.Println("-----------------------------")
-	// arr := []struct {
-	// 	FieldN string
-	// 	FieldX string
-	// }{
-	// 	{FieldN: "some pretty text with string5"},
-	// 	{FieldN: "some pretty text with string2"},
-	// 	{FieldN: "some pretty text with string3"},
-	// }
-	// fmt.Println("tagger.GetFieldNames()", tagger.GetFieldNames())
-	// fieldInfos2, err := tagger.TagObject(arr, tagger.GetFieldNames(), nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// for _, fieldInfo := range fieldInfos2 {
-	// 	fmt.Println(fieldInfo.Name)
-	// 	for extractorName, info := range fieldInfo.Taggers {
-	// 		fmt.Println("    ", extractorName)
-	// 		fmt.Println("        tags: ", info.Tags)
-	// 		fmt.Println("        statistics: ", info.RunData)
-	// 	}
-	// }
+	fmt.Println("-----------------------------")
+	arr := []struct {
+		FieldN string
+		FieldX string
+	}{
+		{FieldN: "some pretty text with string5"},
+		{FieldN: "some pretty text with string2"},
+		{FieldN: "some pretty text with string3"},
+	}
 
-	// res2, err := tagger.ProcessObject(arr, tagger.GetFieldNames(), nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(res2)
+	fieldInfos2, err := tagger.TagObject(arr, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	for _, fieldInfo := range fieldInfos2 {
+		fmt.Println(fieldInfo.Name)
+		for extractorName, info := range fieldInfo.Taggers {
+			fmt.Println("    ", extractorName)
+			fmt.Println("        tags: ", info.Tags)
+			fmt.Println("        statistics: ", info.RunData)
+		}
+	}
+
+	res2, err := tagger.ProcessObject(arr, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("ProcessObject2: ", res2)
 
 	fmt.Println("-----------------------------")
 	rawJson := `
@@ -149,5 +149,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(res3)
+	fmt.Println("ProcessJson: ", res3)
 }

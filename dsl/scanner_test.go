@@ -63,7 +63,7 @@ func TestScanner(t *testing.T) {
 			message: "invalid tag token",
 		},
 		{
-			expStr: `"tag \: \" \\:"`,
+			expStr: `"tag \: \" \\:path\"1\""`,
 			expected: []expectedAtScan{
 				{
 					Tok: TAG,
@@ -72,7 +72,7 @@ func TestScanner(t *testing.T) {
 				},
 				{
 					Tok: FIELD_PATH,
-					Lit: "",
+					Lit: "path\"1\"",
 					Err: nil,
 				},
 				{Tok: EOF, Lit: "", Err: nil},

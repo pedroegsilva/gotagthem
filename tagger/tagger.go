@@ -129,7 +129,9 @@ func (rf *Tagger) GetFieldNames() (fields []string) {
 	return
 }
 
-// TagJson tags the fields of a data of type json.
+// TagJson tags the fields of a data of type json. Warning at the moment golang json unmarshal,
+// when provided a interface{} as the target object, consider all numbers as float64.
+// So use the FloatTagger instead of IntTagger for tagging numbers.
 func (rf *Tagger) TagJson(
 	data string,
 	includePaths []string,

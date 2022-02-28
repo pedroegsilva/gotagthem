@@ -226,9 +226,6 @@ Loop:
 			switch scapedCh {
 			case '\\', '"':
 				_, _ = buf.WriteRune(scapedCh)
-			case '.':
-				_, _ = buf.WriteRune('\\')
-				_, _ = buf.WriteRune(scapedCh)
 			default:
 				return ILLEGAL, "", fmt.Errorf("fail to scan field: invalid escaped char %c", scapedCh)
 			}
