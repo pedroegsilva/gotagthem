@@ -32,7 +32,6 @@ def go_dependencies():
         sum = "h1:N5egH9vhDB1eGp00uZmi8OFzb3cFrE9dG5MfrjRKcGc=",
         version = "v0.1.0",
     )
-
     go_repository(
         name = "com_github_pedroegsilva_gofindthem",
         importpath = "github.com/pedroegsilva/gofindthem",

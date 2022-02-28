@@ -18,10 +18,6 @@ func (rf *Tagger) setFieldInfos(
 
 	val := reflect.ValueOf(data)
 
-	if !val.CanInterface() {
-		return
-	}
-
 	switch val.Kind() {
 	case reflect.String:
 		if !isValidateFieldPath(fieldName, includePaths, excludePaths) {

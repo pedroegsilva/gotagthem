@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "tagger_lib",
+    srcs = [
+        "gofindthemtagger.go",
+        "main.go",
+    ],
+    importpath = "github.com/pedroegsilva/gotagthem/example/tagger",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//tagger",
+        "@com_github_pedroegsilva_gofindthem//finder",
+    ],
+)
+
+go_binary(
+    name = "tagger",
+    embed = [":tagger_lib"],
+    visibility = ["//visibility:public"],
+)
